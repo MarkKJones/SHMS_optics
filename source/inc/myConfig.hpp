@@ -36,21 +36,7 @@ namespace config {
       double yMispointing;  // cm
   };
 
-  class RunConfig {
-    public:
-      RunConfig();
-      ~RunConfig();
-
-      int runNumber;
-      std::vector<std::string> fileList;
-      std::string cuts;
-      std::vector<double> zFoils;  // cm, zFoilOffset applied
-
-      BeamConfig beam;
-      SHMSconfig SHMS;
-  };
-
-  class SieveConfig {
+ class SieveConfig {
     public:
       SieveConfig();
       ~SieveConfig();
@@ -68,14 +54,35 @@ namespace config {
       double z0;  // cm
   };
 
+ class RunConfig {
+    public:
+      RunConfig();
+      ~RunConfig();
+
+      int runNumber;
+      std::vector<std::string> fileList;
+      std::string cuts;
+      std::vector<double> zFoils;  // cm, zFoilOffset applied
+
+      BeamConfig beam;
+      SHMSconfig SHMS;
+      double sievetype; //1 for centered, 2 for offset
+      SieveConfig sieve;
+      std::vector<double> getSieveHolesX() const;
+      std::vector<double> getSieveHolesY() const;
+
+
+  };
+
+
+
+
   class Config{
     public:
       Config();
       ~Config();
 
-      std::vector<double> getSieveHolesX() const;
-      std::vector<double> getSieveHolesY() const;
-
+      
       std::string recMatrixFileNameOld;
       std::string recMatrixFileNameNew;
       int fitOrder;
@@ -85,7 +92,6 @@ namespace config {
       int xTarCorrIterNum;
 
       std::vector<RunConfig> runConfigs;
-      SieveConfig sieve;
   };
 
 

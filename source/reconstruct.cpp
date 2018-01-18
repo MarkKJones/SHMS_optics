@@ -90,8 +90,7 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
   TFile fo(cmdOpts.rootFileName.c_str(), "RECREATE");
   TDirectory* dir;
 
-  std::vector<double> xSievePhys = conf.getSieveHolesX();
-  std::vector<double> ySievePhys = conf.getSieveHolesY();
+  
 
   TCanvas* c1 = new TCanvas("c1", "c1", 100, 100, 600, 400);
   TCanvas* c2 = new TCanvas("c2", "c2", 100, 540, 600, 400);
@@ -107,6 +106,9 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
     const double& sinTheta = runConf.SHMS.sinTheta;
     const size_t nFoils = runConf.zFoils.size();
 
+    std::vector<double> xSievePhys = runConf.getSieveHolesX();
+    std::vector<double> ySievePhys = runConf.getSieveHolesY();
+    
     // Create directory in output ROOT file for histograms.
     dir = fo.mkdir(
       TString::Format("run_%d", runConf.runNumber),
@@ -203,8 +205,8 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
 
       event.xTar += runConf.SHMS.xMispointing;
 
-      event.xSieve = event.xTar + event.xpTar*conf.sieve.z0;
-      event.ySieve = event.yTar + event.ypTar*conf.sieve.z0;
+      event.xSieve = event.xTar + event.xpTar*runConf.sieve.z0;
+      event.ySieve = event.yTar + event.ypTar*runConf.sieve.z0;
 
       ++iEvent;
     }  // reconstruction event loop
@@ -300,8 +302,8 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
     cout << "    Fitting sieve holes." << endl;
 
     std::vector<TH2D> xySieveHists(nFoils);
-    std::vector<TLine> xSieveLines(conf.sieve.nRow);
-    std::vector<TLine> ySieveLines(conf.sieve.nCol);
+    std::vector<TLine> xSieveLines(runConf.sieve.nRow);
+    std::vector<TLine> ySieveLines(runConf.sieve.nCol);
 
     minx = xSievePhys.front() - 0.1*(xSievePhys.back()-xSievePhys.front());
     maxx = xSievePhys.back() + 0.1*(xSievePhys.back()-xSievePhys.front());
@@ -311,7 +313,7 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
     int binsy = 10 * static_cast<int>(maxy-miny);
 
     // Construct lines for physical positions of sieve holes.
-    for (size_t iRow=0; iRow<conf.sieve.nRow; ++iRow) {
+    for (size_t iRow=0; iRow<runConf.sieve.nRow; ++iRow) {
       xSieveLines.at(iRow) = TLine(
         xSievePhys.at(iRow), miny,
         xSievePhys.at(iRow), maxy
@@ -319,7 +321,7 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
       xSieveLines.at(iRow).SetLineColor(6);
       xSieveLines.at(iRow).SetLineWidth(2);
     }
-    for (size_t iCol=0; iCol<conf.sieve.nRow; ++iCol) {
+    for (size_t iCol=0; iCol<runConf.sieve.nRow; ++iCol) {
       ySieveLines.at(iCol) = TLine(
         minx, ySievePhys.at(iCol),
         maxx, ySievePhys.at(iCol)
@@ -329,7 +331,7 @@ int reconstruct(const cmdOptions::OptionParser_reconstruct& cmdOpts) {
     }
 
     // Setting histograms.
-    for (size_t iCol=0; iCol<conf.sieve.nCol; ++iCol) {
+    for (size_t iCol=0; iCol<runConf.sieve.nCol; ++iCol) {
       ySieveLines.at(iCol) = TLine(
         minx, ySievePhys.at(iCol),
         maxx, ySievePhys.at(iCol)

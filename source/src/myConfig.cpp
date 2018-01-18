@@ -18,72 +18,76 @@ config::BeamConfig::~BeamConfig() {}
 config::SHMSconfig::SHMSconfig() :
   thetaCentral(0.0), cosTheta(1.0), sinTheta(0.0),
   thetaOffset(0.0), phiOffset(0.0),
-  xMispointing(0.14), yMispointing(0.0)
+  xMispointing(0.0), yMispointing(0.0)
 {}
 
 
 config::SHMSconfig::~SHMSconfig() {}
 
+// SieveConfig implementation.
+
+config::SieveConfig::SieveConfig() :
+  nRow(11), nCol(11),
+  xHoleMin(-12.5), yHoleMin(-8.5), xHoleSpace(2.5), yHoleSpace(1.64),
+  x0(0.0), y0(0.0), z0(253.0)
+{}
+
+config::SieveConfig::~SieveConfig() {}
 
 // RunConfig implementation.
 
 config::RunConfig::RunConfig() :
   runNumber(0), fileList(), cuts(""), zFoils(),
-  beam(), SHMS()
+  beam(), SHMS(), sievetype(0), sieve()
 {}
-
 
 config::RunConfig::~RunConfig() {}
 
+std::vector<double> config::RunConfig::getSieveHolesX() const {
+  std::vector<double> xSieveHoles(sieve.nRow);
 
-// SieveConfig implementation.
+  for (size_t i=0; i<sieve.nRow; ++i) {
+    xSieveHoles.at(i) =
+      sieve.xHoleMin + static_cast<double>(i)*sieve.xHoleSpace +
+      sieve.x0 + SHMS.xMispointing;
+  }
 
-config::SieveConfig::SieveConfig() :
-  nRow(9), nCol(9),
-  xHoleMin(-10.160), yHoleMin(-6.096), xHoleSpace(2.540), yHoleSpace(1.524),
-  x0(0.0), y0(0.0), z0(166.032)
-{}
+  return xSieveHoles;
+}
 
+std::vector<double> config::RunConfig::getSieveHolesY() const {
+  std::vector<double> ySieveHoles(sieve.nCol);
 
-config::SieveConfig::~SieveConfig() {}
+  if (sievetype<2){//assume centered
+    for (size_t i=0; i<sieve.nCol; ++i) {
+      ySieveHoles.at(i) =
+	sieve.yHoleMin + static_cast<double>(i)*sieve.yHoleSpace +
+	sieve.y0 + SHMS.yMispointing;
+    }
+  }
+  else{//shifted
+    for (size_t i=0; i<sieve.nCol; ++i) {
+      ySieveHoles.at(i) =
+	sieve.yHoleMin + 0.82 + static_cast<double>(i)*sieve.yHoleSpace +
+	sieve.y0 + SHMS.yMispointing;
+    }
+  }
 
+  return ySieveHoles;
+}
 
 // Config implementation.
 
 config::Config::Config() :
   recMatrixFileNameOld(""), recMatrixFileNameNew(""),
   fitOrder(0), maxEventsPerHole(0), zFoilOffset(0.0),
-  xTarCorrIterNum(1), runConfigs(), sieve()
+  xTarCorrIterNum(1), runConfigs()//, sieve()
 {}
 
 
 config::Config::~Config() {}
 
 
-std::vector<double> config::Config::getSieveHolesX() const {
-  std::vector<double> xSieveHoles(sieve.nRow);
-
-  for (size_t i=0; i<sieve.nRow; ++i) {
-    xSieveHoles.at(i) =
-      sieve.xHoleMin + static_cast<double>(i)*sieve.xHoleSpace +
-      sieve.x0 + runConfigs.at(0).SHMS.xMispointing;
-  }
-
-  return xSieveHoles;
-}
-
-
-std::vector<double> config::Config::getSieveHolesY() const {
-  std::vector<double> ySieveHoles(sieve.nCol);
-
-  for (size_t i=0; i<sieve.nCol; ++i) {
-    ySieveHoles.at(i) =
-      sieve.yHoleMin + static_cast<double>(i)*sieve.yHoleSpace +
-      sieve.y0 + runConfigs.at(0).SHMS.yMispointing;
-  }
-
-  return ySieveHoles;
-}
 
 
 // Implementation of functions.
@@ -141,6 +145,12 @@ config::Config config::loadConfigFile(const std::string& fname) {
     else if (tokens[0] == "zfoil") {
       for (size_t i=1; i<tokens.size(); ++i) {
         conf.runConfigs.back().zFoils.push_back(stod(tokens.at(i)));
+      }
+    }
+    else if (tokens[0] == "sieveslit") {
+      conf.runConfigs.back().sievetype = stod(tokens[1]);
+      if (conf.runConfigs.back().sievetype>1){//shifted sieve
+	conf.runConfigs.back().sieve.nCol = 10;
       }
     }
     else if (tokens[0] == "cut") {

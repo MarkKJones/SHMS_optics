@@ -140,9 +140,6 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
   TFile fo(cmdOpts.rootFileName.c_str(), "RECREATE");
   TDirectory* dir;
 
-  std::vector<double> xSievePhys = conf.getSieveHolesX();
-  std::vector<double> ySievePhys = conf.getSieveHolesY();
-
   TMatrixD xpTarFitMat(recMatrixNewLen, recMatrixNewLen);
   TMatrixD yTarFitMat(recMatrixNewLen, recMatrixNewLen);
   TMatrixD ypTarFitMat(recMatrixNewLen, recMatrixNewLen);
@@ -163,6 +160,9 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     const double& cosTheta = runConf.SHMS.cosTheta;
     const double& sinTheta = runConf.SHMS.sinTheta;
     const size_t nFoils = runConf.zFoils.size();
+
+    std::vector<double> xSievePhys = runConf.getSieveHolesX();
+    std::vector<double> ySievePhys = runConf.getSieveHolesY();
 
     // Create directory in output ROOT file for histograms.
     dir = fo.mkdir(
@@ -249,8 +249,8 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
 
       event.xTar += runConf.SHMS.xMispointing;
 
-      event.xSieve = event.xTar + event.xpTar*conf.sieve.z0;
-      event.ySieve = event.yTar + event.ypTar*conf.sieve.z0;
+      event.xSieve = event.xTar + event.xpTar*runConf.sieve.z0;
+      event.ySieve = event.yTar + event.ypTar*runConf.sieve.z0;
 
       ++iEvent;
     }  // reconstruction event loop
@@ -346,8 +346,8 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     cout << "    Fitting sieve holes." << endl;
 
     std::vector<TH2D> xySieveHists(nFoils);
-    std::vector<TLine> xSieveLines(conf.sieve.nRow);
-    std::vector<TLine> ySieveLines(conf.sieve.nCol);
+    std::vector<TLine> xSieveLines(runConf.sieve.nRow);
+    std::vector<TLine> ySieveLines(runConf.sieve.nCol);
 
     minx = xSievePhys.front() - 0.1*(xSievePhys.back()-xSievePhys.front());
     maxx = xSievePhys.back() + 0.1*(xSievePhys.back()-xSievePhys.front());
@@ -357,7 +357,7 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     int binsy = 10 * static_cast<int>(maxy-miny);
 
     // Construct lines for physical positions of sieve holes.
-    for (size_t iRow=0; iRow<conf.sieve.nRow; ++iRow) {
+    for (size_t iRow=0; iRow<runConf.sieve.nRow; ++iRow) {
       xSieveLines.at(iRow) = TLine(
         xSievePhys.at(iRow), miny,
         xSievePhys.at(iRow), maxy
@@ -365,7 +365,7 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
       xSieveLines.at(iRow).SetLineColor(6);
       xSieveLines.at(iRow).SetLineWidth(2);
     }
-    for (size_t iCol=0; iCol<conf.sieve.nRow; ++iCol) {
+    for (size_t iCol=0; iCol<runConf.sieve.nRow; ++iCol) {
       ySieveLines.at(iCol) = TLine(
         minx, ySievePhys.at(iCol),
         maxx, ySievePhys.at(iCol)
@@ -375,7 +375,7 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     }
 
     // Setting histograms.
-    for (size_t iCol=0; iCol<conf.sieve.nCol; ++iCol) {
+    for (size_t iCol=0; iCol<runConf.sieve.nCol; ++iCol) {
       ySieveLines.at(iCol) = TLine(
         minx, ySievePhys.at(iCol),
         maxx, ySievePhys.at(iCol)
@@ -626,10 +626,10 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
 
       double xpTarPhy =
         (xSievePhys.at(xSieveIndexess.at(iFoil).at(iHole)) - xTarVerPhy) /
-        (conf.sieve.z0 - zTarVerPhy);
+        (runConf.sieve.z0 - zTarVerPhy);
       double ypTarPhy =
         (ySievePhys.at(ySieveIndexess.at(iFoil).at(iHole)) - yTarVerPhy) /
-        (conf.sieve.z0 - zTarVerPhy);
+        (runConf.sieve.z0 - zTarVerPhy);
       double xTarPhy = xTarVerPhy - xpTarPhy*zTarVerPhy - runConf.SHMS.xMispointing;
       double yTarPhy = yTarVerPhy - ypTarPhy*zTarVerPhy - runConf.SHMS.yMispointing;
 

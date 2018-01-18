@@ -1,0 +1,18 @@
+newrun 1808
+filelist shmsoptics/shms_replay_production_1808_50000.root
+beampos 0.0 0.0 0.0 0.0
+thetaHMS 15.0
+nfoil 3
+zfoil -10.0 0.0 10.0
+sieveslit 1
+cut P.gtr.dp>0&&P.ngcer.npeSum>10&&P.cal.etracknorm>0.8
+
+endlist
+shms-2011-26cm-monte_ideal_6ord.dat
+shms-2011-26cm-monte_improved_6ord.dat
+0.0 0.0
+6
+200 20000
+0.0
+0
+#4.8280702357E-05
