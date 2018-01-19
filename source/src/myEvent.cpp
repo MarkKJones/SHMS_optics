@@ -46,7 +46,7 @@ void Event::reset() {
 // Implementation of other functions.
 
 std::vector<Event> readEvents(const config::RunConfig& runConf) {
-  Float_t hsxfp, hsyfp, hsxpfp, hsypfp, frx_cm, fry_cm;
+  Double_t hsxfp, hsyfp, hsxpfp, hsypfp, frx_cm, fry_cm;
 
   TChain* chain = new TChain("T");
   for (const auto& fileName : runConf.fileList) {

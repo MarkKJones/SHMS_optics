@@ -38,7 +38,6 @@ set(DATA_FILES
   shms-2011-26cm-monte_ideal_6ord__dep.dat
   shms-2011-26cm-monte_ideal_6ord__indep.dat
   setup_optics_example.txt
-  shmsoptics/shms_replay_production_1808_50000.root
 )
 
 foreach(_file ${DATA_FILES})
