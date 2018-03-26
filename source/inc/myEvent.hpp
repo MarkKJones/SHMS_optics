@@ -38,6 +38,9 @@ class Event {
     // Sieve variables.
     double xSieve;  // cm
     double ySieve;  // cm
+
+  // Delta
+  double delta; // %
 };
 
 

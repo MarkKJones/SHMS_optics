@@ -152,6 +152,25 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
   TCanvas* c3 = new TCanvas("c3", "c3", 702, 100, 600, 400);
   gPad->Update();
 
+ //make 2D plots for xpTar and ypTar
+  TH2D *h2_xpTar = new TH2D("h2_xpTar",";xpTar_{real};xpTar_{measured} - xpTar_{real}",200,0.0,0.06,200,-0.01,0.01);
+  TH2D *h2_ypTar = new TH2D("h2_ypTar",";ypTar_{real};ypTar_{measured} - ypTar_{real}",200,0.0,0.06,200,-0.01,0.01);
+  TH2D *h2_xSieve = new TH2D("h2_xSieve",";xSieve_{real};xSieve_{measured} - xSieve_{real}",200,-12.0,12.0,200,-5.0,5.0);
+  TH2D *h2_ySieve = new TH2D("h2_ySieve",";ySieve_{real};ySieve_{measured} - ySieve_{real}",200,-7.0,7.0,200,-3.0,3.0);
+  TH2D *h2_yTar = new TH2D("h2_yTar",";yTar_{real};yTar_{measured} - yTar_{real}",200,-6.0,6.0,200,-3.0,3.0);
+  TH2D *h2_zVer = new TH2D("h2_zVer",";zVer_{real};zVer_{measured} - zVer_{real}",200,-12.0,12.0,200,-5.0,5.0);
+  //TH1F *h_xSieve = new TH1F("h_xSieve",";xSieve",200,-12.0,12.0);
+  //TH1F *h_ySieve = new TH1F("h_ySieve",";ySieve",200,-7.0,7.0);
+  TH2D *h2_yTarVypTar = new TH2D("h2_yTarVypTar",";yTar [cm]; ypTar",200,-4,4,200,-0.05,0.05);
+  TH1F *h_yTarReal = new TH1F("h_yTarReal",";yTar real [cm]",200,-4.0,4.0);
+  TH2D *h2_yTarVypTarReal = new TH2D("h2_yTarVypTarReal",";yTar [cm]; ypTar",200,-4,4,200,-0.05,0.05);
+  TH1F *h_ypTarMeasured = new TH1F("h_ypTarMeasured",";ypTar measured",200,-0.06,0.06);
+  TH1F *h_ypTarReal = new TH1F("h_ypTarReal",";ypTar real",200,-0.06,0.06);
+  TH2F *h2_yTarVdelta = new TH2F("h2_yTarVdelta",";yTar measured [cm];delta",200,-6.0,6.0,200,-10,20);
+  TH2F *h2_yTarVdeltaReal = new TH2F("h2_yTarVdeltaReal",";yTar real [cm];delta",200,-6.0,6.0,200,-10,20);
+  TH2F *h2_ypTarVzFoil = new TH2F("h2_ypTarVzFoil",";zFoil [cm]; ypTar measured",200,-13,13,200,-0.05,0.05);
+  TH2F *h2_ypTarVzFoilR = new TH2F("h2_ypTarVzFoilR",";zFoil [cm]; ypTar real",200,-13,13,200,-0.05,0.05);
+  TH2F *h2_fp = new TH2F("h2_fp",";xfp [cm]; yfp [cm]",200,0,8,200,-15,15);
 
   cout << "Reading and analyzing root files:" << endl;
   for (const auto& runConf : conf.runConfigs) {  // run loop
@@ -184,6 +203,9 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     double ySumIndep, ySumDep;
     double ypSumIndep, ypSumDep;
     double lambda;
+    const double D1 = 138.0;
+    const double D2 = 75.0;
+    const double D3 = 40.0;
 
     reportProgressInit();
     for (auto& event : events) {  // reconstruction event loop
@@ -196,6 +218,8 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
       ySumDep = 0.0;
       ypSumDep = 0.0;
       lambda = 0.0;
+
+      h2_fp->Fill(event.xFp,event.yFp);
 
       // Calculate contribution of xTar independent terms.
       for (const auto& line : recMatrixIndep.matrix) {  // line loop
@@ -213,7 +237,9 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
       // Now do several iterations of xTar dependent constributions, each time
       // with a better approximation for xTar.
       event.xTar = -event.yVer - runConf.SHMS.xMispointing;
-
+      double corrFactor = 95.0;
+      double uncorrYTar = 0.0;
+      double uncorrZVer = 0.0;
       for (int iIter=0; iIter<conf.xTarCorrIterNum+1; ++iIter) {  // iteration loop
         xpSumDep = 0.0;
         ySumDep = 0.0;
@@ -236,21 +262,42 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
         event.yTar = (ySumIndep+ySumDep)*100.0 + runConf.SHMS.yMispointing;
         event.ypTar = (ypSumIndep+ypSumDep) + runConf.SHMS.thetaOffset;
 
-        event.zVer =
-          (event.yTar - event.xVer*(cosTheta + event.ypTar*sinTheta)) /
-          (sinTheta - event.ypTar*cosTheta);
+
+	//correct the ytar vs yptar dependency
+	//this is for 2017 data prior to optimization only
+	uncorrYTar = event.yTar;
+	if (sinTheta<0.31){corrFactor = 45.0;}
+
+	if (runConf.use2017Corr != 0){
+	  event.yTar = event.yTar - runConf.SHMS.yMispointing - corrFactor*event.ypTar;
+	  event.yTar += runConf.SHMS.yMispointing;
+	}
+	
+	event.zVer =
+          (event.yTar - event.xVer*(cosTheta - event.ypTar*sinTheta)) /
+          (-sinTheta - event.ypTar*cosTheta);
+	
+	uncorrZVer =
+          (uncorrYTar - event.xVer*(cosTheta - event.ypTar*sinTheta)) /
+          (-sinTheta - event.ypTar*cosTheta);
+	
 
         event.xTarVer = -event.yVer;
-        event.yTarVer = event.zVer*sinTheta + event.xVer*cosTheta;
-        event.zTarVer = event.zVer*cosTheta - event.xVer*sinTheta;
+	event.yTarVer = -uncorrZVer*sinTheta + event.xVer*cosTheta;
+        event.zTarVer = uncorrZVer*cosTheta + event.xVer*sinTheta;
+
 
         event.xTar = event.xTarVer - event.zTarVer*event.xpTar - runConf.SHMS.xMispointing;
       }   // iteration loop
 
       event.xTar += runConf.SHMS.xMispointing;
+      event.yTar -= runConf.SHMS.yMispointing;
+      h2_yTarVypTar->Fill(event.yTar,event.ypTar);
 
       event.xSieve = event.xTar + event.xpTar*runConf.sieve.z0;
-      event.ySieve = event.yTar + event.ypTar*runConf.sieve.z0;
+      //event.ySieve = event.yTar + event.ypTar*runConf.sieve.z0;
+      event.ySieve = (-0.019*event.delta+0.00019*pow(event.delta,2)+(D1+D2)*event.ypTar+uncorrYTar) + D3*(-0.00052*event.delta+0.0000052*pow(event.delta,2)+event.ypTar);
+      h2_yTarVdelta->Fill(event.yTar, event.delta);
 
       ++iEvent;
     }  // reconstruction event loop
@@ -260,8 +307,8 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     cout << "    Fitting target foils." << endl;
 
     // Setting historgams.
-    double minx = runConf.zFoils.front() - 3.0;
-    double maxx = runConf.zFoils.back() + 3.0;
+    double minx = runConf.zFoils.front() - 5.0;
+    double maxx = runConf.zFoils.back() + 5.0;
     int binsx = 10 * static_cast<int>(maxx-minx);
     TH1D zVerHist(
       TString::Format("zVer"),
@@ -286,24 +333,33 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     }
 
     // Fitting the histograms.
-    //std::vector<Peak> zVerPeaks = fitMultiPeak(&zVerHist, 0.7);
+    int nnFoils = (int)nFoils;
+
+    std::vector<Peak> zVerPeaks = findPeaks(&zVerHist, nnFoils);
+    std::vector<Peak> yTarPeaks = findPeaks(&yTarHist, nnFoils);
+    zVerHist.GetXaxis()->SetRange(1,binsx);
+    yTarHist.GetXaxis()->SetRange(1,binsx);
+
+    //std::vector<Peak> yTarPeaks = findPeaks(&yTarHist, nnFoils);
+
+    //std::vector<Peak> zVerPeaks = fitMultiPeak(&zVerHist, 0.5);
+    /*
     int nnFoils = (int)nFoils;
     std::vector<Peak> zVerPeaks = selectMultiPeakZ(&zVerHist, nnFoils, sinTheta);
     std::vector<Peak> yTarPeaks = selectMultiPeakY(&yTarHist, nnFoils, sinTheta);
-
-    //std::vector<Peak> yTarPeaks = fitMultiPeak(&yTarHist, 0.2);
-    cout<<"Number of foils found: "<<zVerPeaks.size()<<endl;
-    for (int kk=0; kk<zVerPeaks.size(); kk++){
-      cout<<"   peak: "<<zVerPeaks.at(kk).mean<<" , width: "<<zVerPeaks.at(kk).sigma<<endl;
-    }
-    /*
-    if (zVerPeaks.at(0).mean<minx){
-      zVerPeaks = fitMultiPeak(&zVerHist, 0.5);
-    }
-    if (zVerPeaks.size()<nFoils){
-      zVerPeaks = fitMultiPeak(&zVerHist, 0.5);
-    }
     */
+    //std::vector<Peak> yTarPeaks = fitMultiPeak(&yTarHist, 0.7);
+    
+    cout<<"Number of foils found: "<<zVerPeaks.size()<<endl;
+    for (uint kk=0; kk<zVerPeaks.size(); kk++){
+      cout<<"   peak: "<<zVerPeaks.at(kk).mean<<" , width: "<<zVerPeaks.at(kk).sigma<<" height: "<<zVerPeaks.at(kk).norm<<endl;
+    }
+    cout<<"Number of yTar found: "<<yTarPeaks.size()<<endl;
+    
+    for (uint kk=0; kk<yTarPeaks.size(); kk++){
+      cout<<"   peak: "<<yTarPeaks.at(kk).mean<<" , width: "<<yTarPeaks.at(kk).sigma<<" height: "<<yTarPeaks.at(kk).norm<<endl;
+    }
+    
     // Plotting the histograms.
     c1->cd();
     zVerHist.Draw();
@@ -332,9 +388,15 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     maxy = gPad->GetUymax();
     std::vector<TLine> yTarLines(nFoils);
     for (size_t iFoil=0; iFoil<nFoils; ++iFoil) {
+      double xVer = -runConf.beam.x0;//?
+      double yTarVer = -runConf.zFoils.at(iFoil)*sinTheta + xVer*cosTheta - runConf.SHMS.yMispointing;
+      double zTarVer = runConf.zFoils.at(iFoil)*cosTheta + xVer*sinTheta;
+      double ypTar = (0 - yTarVer)/(253.0 - zTarVer);
+      Double_t yTarZ = yTarVer - ypTar*zTarVer; 
+
       yTarLines.at(iFoil) = TLine(
-        runConf.zFoils.at(iFoil)*sinTheta, miny,
-        runConf.zFoils.at(iFoil)*sinTheta, maxy
+        yTarZ, miny,
+        yTarZ, maxy
       );
       yTarLines.at(iFoil).SetLineColor(6);
       yTarLines.at(iFoil).SetLineWidth(2);
@@ -345,7 +407,7 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     yTarHist.Write();
 
     if (cmdOpts.automatic) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
+      //      std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
     }
     else {
       cout << "    Continue? ";
@@ -356,84 +418,87 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     gPad->Update();
     c3->Clear();
     gPad->Update();
-
-
+    
     cout << "    Fitting sieve holes." << endl;
-
+    
     std::vector<TH2D> xySieveHists(nFoils);
     std::vector<TLine> xSieveLines(runConf.sieve.nRow);
     std::vector<TLine> ySieveLines(runConf.sieve.nCol);
-
+    
     minx = xSievePhys.front() - 0.1*(xSievePhys.back()-xSievePhys.front());
     maxx = xSievePhys.back() + 0.1*(xSievePhys.back()-xSievePhys.front());
     binsx = 10 * static_cast<int>(maxx-minx);
     miny = ySievePhys.front() - 0.1*(ySievePhys.back()-ySievePhys.front());
     maxy = ySievePhys.back() + 0.1*(ySievePhys.back()-ySievePhys.front());
     int binsy = 10 * static_cast<int>(maxy-miny);
-
+    
     // Construct lines for physical positions of sieve holes.
     for (size_t iRow=0; iRow<runConf.sieve.nRow; ++iRow) {
       xSieveLines.at(iRow) = TLine(
-        xSievePhys.at(iRow), miny,
-        xSievePhys.at(iRow), maxy
-      );
+				   xSievePhys.at(iRow), miny,
+				   xSievePhys.at(iRow), maxy
+				   );
       xSieveLines.at(iRow).SetLineColor(6);
       xSieveLines.at(iRow).SetLineWidth(2);
     }
-    for (size_t iCol=0; iCol<runConf.sieve.nRow; ++iCol) {
+    for (size_t iCol=0; iCol<runConf.sieve.nCol; ++iCol) {
       ySieveLines.at(iCol) = TLine(
-        minx, ySievePhys.at(iCol),
-        maxx, ySievePhys.at(iCol)
-      );
+				   minx, ySievePhys.at(iCol),
+				   maxx, ySievePhys.at(iCol)
+				   );
       ySieveLines.at(iCol).SetLineColor(6);
       ySieveLines.at(iCol).SetLineWidth(2);
     }
+    
+   
 
     // Setting histograms.
     for (size_t iCol=0; iCol<runConf.sieve.nCol; ++iCol) {
       ySieveLines.at(iCol) = TLine(
-        minx, ySievePhys.at(iCol),
-        maxx, ySievePhys.at(iCol)
-      );
+				   minx, ySievePhys.at(iCol),
+				   maxx, ySievePhys.at(iCol)
+				   );
       ySieveLines.at(iCol).SetLineColor(6);
       ySieveLines.at(iCol).SetLineWidth(2);
     }
+    
+    
+    TH2D *h2_xSieveAng[nFoils];
+    TH2D *h2_ySieveAng[nFoils];
 
     for (size_t iFoil=0; iFoil<nFoils; ++iFoil) {
+      h2_xSieveAng[iFoil] = new TH2D(Form("h2_xSieveAng_%d",static_cast<int>(iFoil)),Form("Run %d Foil %d;xSieve_{real};ypTar_{measured} - ypTar_{real}",runConf.runNumber, static_cast<int>(iFoil)),200,-12.0,12.0,200,-0.02,0.02);
+      h2_ySieveAng[iFoil] = new TH2D(Form("h2_ySieveAng_%d",static_cast<int>(iFoil)),Form("Run %d Foil %d;ySieve_{real};xptar_{measured} - xpTar_{real}",runConf.runNumber,static_cast<int>(iFoil)),200,-7.0,7.0,200,-0.02,0.02);
+
       xySieveHists.at(iFoil) = TH2D(
-        TString::Format("xySieve_%d", static_cast<int>(iFoil)),
-        TString::Format("xySieve for foil %d run %d", static_cast<int>(iFoil), runConf.runNumber),
-        binsx, minx, maxx,
-        binsy, miny, maxy
-      );
+				    TString::Format("xySieve_%d", static_cast<int>(iFoil)),
+				    TString::Format("xySieve for foil %d run %d", static_cast<int>(iFoil), runConf.runNumber),
+				    binsx, minx, maxx,
+				    binsy, miny, maxy
+				    );
       xySieveHists.at(iFoil).GetXaxis()->SetTitle("x_{sieve}  [cm]");
       xySieveHists.at(iFoil).GetYaxis()->SetTitle("y_{sieve}  [cm]");
       for (auto& line : xSieveLines) {
-        xySieveHists.at(iFoil).GetListOfFunctions()->Add(&line);
+	xySieveHists.at(iFoil).GetListOfFunctions()->Add(&line);
       }
       for (auto& line : ySieveLines) {
-        xySieveHists.at(iFoil).GetListOfFunctions()->Add(&line);
+	xySieveHists.at(iFoil).GetListOfFunctions()->Add(&line);
       }
     }
-
-    // Check the foils.
-    cout<<"Number of zVtx peaks: "<<zVerPeaks.size()<<endl;
-    for (size_t iFoil=0; iFoil<nFoils; ++iFoil) {
-      cout<<"Foil: "<<iFoil<<" at "<<zVerPeaks.at(iFoil).mean<<" of width "<<zVerPeaks.at(iFoil).sigma<<endl;
-    }
-
+  
     // Filling the histograms.
     for (const auto& event : events) {
       for (size_t iFoil=0; iFoil<nFoils; ++iFoil) {
-        if (
-          zVerPeaks.at(iFoil).mean - 3.0*zVerPeaks.at(iFoil).sigma <= event.zVer &&
-          event.zVer <= zVerPeaks.at(iFoil).mean + 3.0*zVerPeaks.at(iFoil).sigma &&
-          yTarPeaks.at(iFoil).mean - 3.0*yTarPeaks.at(iFoil).sigma <= event.yTar &&
-          event.yTar <= yTarPeaks.at(iFoil).mean + 3.0*yTarPeaks.at(iFoil).sigma
-        ) {
-          xySieveHists.at(iFoil).Fill(event.xSieve, event.ySieve);
-          break;
-        }
+	double zVerSigma = zVerPeaks.at(iFoil).sigma;
+	if (
+	    zVerPeaks.at(iFoil).mean - 1.0*zVerSigma <= event.zVer &&
+	    event.zVer <= zVerPeaks.at(iFoil).mean + 1.0*zVerSigma &&
+	    yTarPeaks.at(nFoils-1-iFoil).mean - 1.0*yTarPeaks.at(nFoils-1-iFoil).sigma <= event.yTar &&
+	    event.yTar <= yTarPeaks.at(nFoils-1-iFoil).mean + 1.0*yTarPeaks.at(nFoils-1-iFoil).sigma
+	    ) {
+	  xySieveHists.at(iFoil).Fill(event.xSieve, event.ySieve);
+	  break;
+	}
       }
     }
 
@@ -444,31 +509,49 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
     std::vector<std::vector<std::size_t> > ySieveIndexess(nFoils);
     std::vector<std::vector<std::size_t> > nEventss(nFoils);
     std::vector<std::vector<TEllipse> > ellipsess(nFoils);
-
+    
     TH1D* tmpHist;
     TMarker* tmpMark = new TMarker(0.0, 0.0, 22);
     tmpMark->SetMarkerColor(2);
-
+    
     // Fit sieve holes for each foil.
     for (size_t iFoil=0; iFoil<nFoils; ++iFoil) {  // foil loop
       cout << "      Foil " << iFoil << "." << endl;
-
+      //if (iFoil<2) continue;
       TH2D& xySieveHist = xySieveHists.at(iFoil);
-
+      
       c1->cd();
       xySieveHist.Draw("colz");
       c1->Update();
       gPad->Update();
-
+      
       // Fit the projections to get position estimates.
       c2->cd();
-      tmpHist = xySieveHist.ProjectionX();
+      if (iFoil>=1){
+	tmpHist = xySieveHist.ProjectionX("",binsy/4,binsy/1,"");
+      }
+      else{
+	tmpHist = xySieveHist.ProjectionX();
+      }
       tmpHist->SetTitle("x_{fp} projection");
       tmpHist->Draw();
       std::vector<Peak> xSievePeaksFit = fitMultiPeak(tmpHist, 0.1);
       gPad->Update();
-  
+      
+      c3->cd();
+      if (iFoil>=1){
+	tmpHist = xySieveHist.ProjectionY("", binsx/4,binsx/1,"");				       
+      }
+      else{
+	tmpHist = xySieveHist.ProjectionY();				       
+      }
+      tmpHist->SetTitle("y_{fp} projection");
+      tmpHist->Draw();
+      std::vector<Peak> ySievePeaksFit = fitMultiPeak(tmpHist, 0.1);
+      gPad->Update();
+
       // Setup before fitting.
+      
       std::vector<Peak>& xSievePeaks = xSievePeakss.at(iFoil);
       std::vector<Peak>& ySievePeaks = ySievePeakss.at(iFoil);
       std::vector<std::size_t>& xSieveIndexes = xSieveIndexess.at(iFoil);
@@ -479,82 +562,90 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
       // Fit each individual hole.      
       double xComparison = -30.0;
       for (const auto& xSievePeak : xSievePeaksFit) {
-        tmpMark->SetX(xSievePeak.mean);
-	//cout<<"xpeak:\t"<<xSievePeak.mean<<"\t"<<xSievePeak.sigma<<endl;
-	int binXmin = xySieveHist.GetXaxis()->FindBin(xSievePeak.mean - 3*xSievePeak.sigma);
-	int binXmax = xySieveHist.GetXaxis()->FindBin(xSievePeak.mean + 3*xSievePeak.sigma);
-	if(TMath::Abs(xSievePeak.mean - xComparison)<2){continue;}
+	tmpMark->SetX(xSievePeak.mean);
+	double xPeakSigmaInit = 0.36;//xSievePeak.sigma;
+	if (xPeakSigmaInit>0.36){xPeakSigmaInit=0.36;}
+	int binXmin = xySieveHist.GetXaxis()->FindBin(xSievePeak.mean - 3*xPeakSigmaInit);
+	int binXmax = xySieveHist.GetXaxis()->FindBin(xSievePeak.mean + 3*xPeakSigmaInit);
+	if(TMath::Abs(xSievePeak.mean - xComparison)<1.5){continue;}
+	if(TMath::Abs(xSievePeak.mean - xComparison)>=1.5 && TMath::Abs(xSievePeak.mean - xComparison)<2.0){xPeakSigmaInit=0.35;}
 	xComparison = xSievePeak.mean;
-
-	c3->cd();
-	tmpHist = xySieveHist.ProjectionY("", binXmin, binXmax);				       
-	tmpHist->SetTitle("y_{fp} projection");
-	tmpHist->Draw();
-	std::vector<Peak> ySievePeaksFit = fitMultiPeak(tmpHist, 0.2);
-	gPad->Update();
-
+	
 	//////////////////////////
 	if (cmdOpts.automatic) {
-	  std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
+	  //	  std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
 	}
 	else {
 	  cout << "    Continue? ";
 	  cin >> tmp;
 	}
+
 	//////////////////////////
 	double yComparison = -10.0;
-        for (const auto& ySievePeak : ySievePeaksFit) {
-          tmpMark->SetY(ySievePeak.mean);
-          c1->cd();
-          tmpMark->Draw();
-          gPad->Update();
-	  //cout<<"\typeak:\t"<<ySievePeak.mean<<"\t"<<ySievePeak.sigma<<"\tprevious:\t"<<yComparison<<endl;
- 
-	  if(TMath::Abs(ySievePeak.mean - yComparison)<0.75){continue;}
-
-	  double xPeakSigmaInit = xSievePeak.sigma;
+	for (const auto& ySievePeak : ySievePeaksFit) {
+	  tmpMark->SetY(ySievePeak.mean);
+	  c1->cd();
+	  tmpMark->Draw();
+	  gPad->Update();
+	  //  	   cout<<"\typeak:\t"<<ySievePeak.mean<<"\t"<<ySievePeak.sigma<<"\tprevious:\t"<<yComparison<<endl;
+	  
+	  if(TMath::Abs(ySievePeak.mean - yComparison)<0.95){continue;}
+	  
 	  double yPeakSigmaInit = ySievePeak.sigma;
-	  if (xPeakSigmaInit>0.65){xPeakSigmaInit=0.65;}
-	  if (yPeakSigmaInit>0.38){yPeakSigmaInit=0.38;}
+	  if (yPeakSigmaInit>0.35){yPeakSigmaInit=0.35;}
+	  //if (TMath::Abs(ySievePeak.mean - yComparison)>1.5 && TMath::Abs(ySievePeak.mean - yComparison)<4 && yPeakSigmaInit<0.05){yPeakSigmaInit=0.35;}
 
-          // Find bounding box for current hole.
-          int binYmin = xySieveHist.GetYaxis()->FindBin(ySievePeak.mean - 3*ySievePeak.sigma);
-          int binYmax = xySieveHist.GetYaxis()->FindBin(ySievePeak.mean + 3*ySievePeak.sigma);
+	  // Find bounding box for current hole.
+	  int binYmin = xySieveHist.GetYaxis()->FindBin(ySievePeak.mean - 3*yPeakSigmaInit);
+	  int binYmax = xySieveHist.GetYaxis()->FindBin(ySievePeak.mean + 3*yPeakSigmaInit);
+	  
+	  // Want to have at least 50 events for fitting.
+	  double integral = xySieveHist.Integral(
+						 binXmin, binXmax,
+						 binYmin, binYmax
+						 );
+	  
+	  //cout<<"box: "<<binXmin<<","<<binXmax<<" and "<<binYmin<<","<<binYmax<<endl;
+	  // cout<<"integral: "<<integral<<endl;
+	  if (integral < 50) continue;
+	  
+	  // Fit x and y projection separately.
+	  c2->cd();
+	  tmpHist = xySieveHist.ProjectionX("_px", binYmin, binYmax);
+	  tmpHist->GetXaxis()->SetRange(binXmin, binXmax);
+	  tmpHist->Draw();
+	  Peak xSievePeakSingle = fitPeak(
+					  tmpHist,
+					  xSievePeak.norm,
+					  xSievePeak.mean,
+					  xPeakSigmaInit
+					  );
+	  gPad->Update();
+	  
+	  c3->cd();
+	  tmpHist = xySieveHist.ProjectionY("_py", binXmin, binXmax);
+	  tmpHist->GetXaxis()->SetRange(binYmin, binYmax);
+	  tmpHist->Draw();
+	  Peak ySievePeakSingle = fitPeak(
+					  tmpHist,
+					  ySievePeak.norm,
+					  ySievePeak.mean,
+					  yPeakSigmaInit
+					  );
+	  gPad->Update();
 
-          // Want to have at least 50 events for fitting.
-          double integral = xySieveHist.Integral(
-            binXmin, binXmax,
-            binYmin, binYmax
-          );
-          if (integral < 100) continue;
-
-          // Fit x and y projection separately.
-          c2->cd();
-          tmpHist = xySieveHist.ProjectionX("_px", binYmin, binYmax);
-          tmpHist->GetXaxis()->SetRange(binXmin, binXmax);
-          tmpHist->Draw();
-          Peak xSievePeakSingle = fitPeak(
-            tmpHist,
-            xSievePeak.norm,
-            xSievePeak.mean,
-            xSievePeak.sigma
-          );
-          gPad->Update();
-
-          c3->cd();
-          tmpHist = xySieveHist.ProjectionY("_py", binXmin, binXmax);
-          tmpHist->GetXaxis()->SetRange(binYmin, binYmax);
-          tmpHist->Draw();
-          Peak ySievePeakSingle = fitPeak(
-            tmpHist,
-            ySievePeak.norm,
-            ySievePeak.mean,
-            ySievePeak.sigma
-          );
-          gPad->Update();
+	  int binYFitmin = xySieveHist.GetYaxis()->FindBin(ySievePeakSingle.mean - 2.2*ySievePeakSingle.sigma);
+	  int binYFitmax = xySieveHist.GetYaxis()->FindBin(ySievePeakSingle.mean + 2.2*ySievePeakSingle.sigma);
+	  int binXFitmin = xySieveHist.GetXaxis()->FindBin(xSievePeakSingle.mean - 2.2*xSievePeakSingle.sigma);
+	  int binXFitmax = xySieveHist.GetXaxis()->FindBin(xSievePeakSingle.mean + 2.2*xSievePeakSingle.sigma);
+	  integral = xySieveHist.Integral(
+					  binXFitmin, binXFitmax,
+					  binYFitmin, binYFitmax
+					  );
+	  if (integral<50){continue;}
 	  ////////////////////////
 	  if (cmdOpts.automatic) {
-	    std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
+	    //	    std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
 	  }
 	  else {
 	    cout << "    Continue? ";
@@ -562,9 +653,9 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
 	  }
 	  /////////////////////////
 
-          // Construct bounding ellipse.
-	  if (xSievePeakSingle.sigma !=0 && ySievePeakSingle.sigma!=0){
-
+	  // Construct bounding ellipse.
+	  if (xSievePeakSingle.sigma!=0.0 && ySievePeakSingle.sigma!=0.0 && abs(xSievePeakSingle.mean)<15.0 && abs(ySievePeakSingle.mean)<10.0 && TMath::Abs(ySievePeakSingle.mean-yComparison)>0.95){
+	    
 	    TEllipse ellipse(
 			     xSievePeakSingle.mean, ySievePeakSingle.mean,
 			     2.2*xSievePeakSingle.sigma, 2*ySievePeakSingle.sigma
@@ -572,7 +663,7 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
 	    ellipse.SetLineColor(2);
 	    ellipse.SetLineWidth(2);
 	    ellipse.SetFillStyle(0);
-
+	    
 	    // Push everything to collection.
 	    xSievePeaks.push_back(xSievePeakSingle);
 	    ySievePeaks.push_back(ySievePeakSingle);
@@ -580,41 +671,41 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
 	    ySieveIndexes.push_back(getClosestIndex(ySievePeakSingle.mean, ySievePhys));
 	    nEvents.push_back(0);
 	    ellipses.push_back(ellipse);
-	    yComparison = ySievePeak.mean;
+	    yComparison = ySievePeakSingle.mean;
+	    
 	  }
-        }
+	}
       }
 
       c1->cd();
       tmpMark->SetX(1000.0);
       tmpMark->Draw();
       for (auto& ellipse : ellipses) {
-        xySieveHist.GetListOfFunctions()->Add(&ellipse);
+	xySieveHist.GetListOfFunctions()->Add(&ellipse);
       }
       gPad->Update();
       xySieveHist.Write();
-
+      
       c2->Clear();
       gPad->Update();
       c3->Clear();
       gPad->Update();
-
+      
       if (cmdOpts.automatic) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
+	//	std::this_thread::sleep_for(std::chrono::milliseconds(cmdOpts.delay));
       }
       else {
-        cout << "    Continue? ";
-        cin >> tmp;
+	cout << "    Continue? ";
+	cin >> tmp;
       }
-
+      
       c1->Clear();
       gPad->Update();
     }  // foil loop
-
+    
     // Cleanup of sieve fit.
     delete tmpHist;
     delete tmpMark;
-
 
     cout << "    Filling SVD matrices and vectors: ";
     iEvent = 0;
@@ -627,61 +718,83 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
       // Find which foil if any.
       uint iFoil = 0;
       for (iFoil=0; iFoil<nFoils; ++iFoil) {
+	double zVerSigma = zVerPeaks.at(iFoil).sigma;
         if (
-          zVerPeaks.at(iFoil).mean - 3.0*zVerPeaks.at(iFoil).sigma <= event.zVer &&
-          event.zVer <= zVerPeaks.at(iFoil).mean + 3.0*zVerPeaks.at(iFoil).sigma &&
-          yTarPeaks.at(iFoil).mean - 3.0*yTarPeaks.at(iFoil).sigma <= event.yTar &&
-          event.yTar <= yTarPeaks.at(iFoil).mean + 3.0*yTarPeaks.at(iFoil).sigma
+          zVerPeaks.at(iFoil).mean - 1.0*zVerSigma <= event.zVer &&
+          event.zVer <= zVerPeaks.at(iFoil).mean + 1.0*zVerSigma &&
+          yTarPeaks.at(nFoils-1-iFoil).mean - 1.0*yTarPeaks.at(nFoils-1-iFoil).sigma <= event.yTar &&
+          event.yTar <= yTarPeaks.at(nFoils-1-iFoil).mean + 1.0*yTarPeaks.at(nFoils-1-iFoil).sigma
         ) {
           break;
         }
       }
-
+      //if (iFoil!=0) continue;/////this is only to test!!!!!!!!!!!!!!!!!!!!!!
       // Skip event if it is too far from any foil.
       if (iFoil == nFoils) continue;
 
-      // Find which sieve hole if any.
+      // Find which sieve hole if any for corresponding delta. 
       uint iHole = 0;
+      
       for (iHole=0; iHole<xSievePeakss.at(iFoil).size(); ++iHole) {
-        Peak& xSieveP = xSievePeakss.at(iFoil).at(iHole);
-        Peak& ySieveP = ySievePeakss.at(iFoil).at(iHole);
-        if (
-          xSieveP.mean - 2.2*xSieveP.sigma <= event.xSieve &&
-          event.xSieve <= xSieveP.mean + 2.2*xSieveP.sigma &&
-          ySieveP.mean - 2*ySieveP.sigma <= event.ySieve &&
-          event.ySieve <= ySieveP.mean + 2*ySieveP.sigma
-        ) {
-          break;
-        }
+	Peak& xSieveP = xSievePeakss.at(iFoil).at(iHole);
+	Peak& ySieveP = ySievePeakss.at(iFoil).at(iHole);
+	if (
+	    xSieveP.mean - 2.2*xSieveP.sigma <= event.xSieve &&
+	    event.xSieve <= xSieveP.mean + 2.2*xSieveP.sigma &&
+	    ySieveP.mean - 2*ySieveP.sigma <= event.ySieve &&
+	    event.ySieve <= ySieveP.mean + 2*ySieveP.sigma
+	    ) {
+	  break;
+	}
       }
 
       // Skip event if it is too far from any hole or if there is enough events
       // from this hole already.
       if (
-        iHole == xSievePeakss.at(iFoil).size() ||
-        nEventss.at(iFoil).at(iHole) > 50
-      ) {
-        continue;
+	  iHole == xSievePeakss.at(iFoil).size() ||
+	  nEventss.at(iFoil).at(iHole) > 50
+	  ) {
+	continue;
       }
       ++nEventss.at(iFoil).at(iHole);
-
 
       // Calculate the real or "physical" event quantities.
       double zFoil = runConf.zFoils.at(iFoil);
 
-      double xTarVerPhy = -event.yVer;
-      double yTarVerPhy = zFoil*sinTheta + event.xVer*cosTheta;
-      double zTarVerPhy = zFoil*cosTheta - event.xVer*sinTheta;
+      double xTarVerPhy = -event.yVer- runConf.SHMS.xMispointing;
+      double yTarVerPhy = -zFoil*sinTheta + event.xVer*cosTheta - runConf.SHMS.yMispointing;
+      double zTarVerPhy = zFoil*cosTheta + event.xVer*sinTheta;
 
       double xpTarPhy =
         (xSievePhys.at(xSieveIndexess.at(iFoil).at(iHole)) - xTarVerPhy) /
         (runConf.sieve.z0 - zTarVerPhy);
+      
+      double Cdelta = -0.019*event.delta+0.00019*pow(event.delta,2) + 40.0*(-0.00052*event.delta+0.0000052*pow(event.delta,2));
       double ypTarPhy =
-        (ySievePhys.at(ySieveIndexess.at(iFoil).at(iHole)) - yTarVerPhy) /
+	(ySievePhys.at(ySieveIndexess.at(iFoil).at(iHole)) - Cdelta - yTarVerPhy) /
         (runConf.sieve.z0 - zTarVerPhy);
-      double xTarPhy = xTarVerPhy - xpTarPhy*zTarVerPhy - runConf.SHMS.xMispointing;
-      double yTarPhy = yTarVerPhy - ypTarPhy*zTarVerPhy - runConf.SHMS.yMispointing;
+      
+      double xTarPhy = xTarVerPhy - xpTarPhy*zTarVerPhy; 
+      double yTarPhy = yTarVerPhy - ypTarPhy*zTarVerPhy; 
 
+
+      h2_yTarVdeltaReal->Fill(yTarPhy, event.delta);
+
+      h2_xpTar->Fill(xpTarPhy,event.xpTar-xpTarPhy);
+      h2_ypTar->Fill(ypTarPhy,event.ypTar-ypTarPhy);
+      h2_xSieve->Fill(xSievePhys.at(xSieveIndexess.at(iFoil).at(iHole)),event.xSieve-xSievePhys.at(xSieveIndexess.at(iFoil).at(iHole)));
+      h2_ySieve->Fill(ySievePhys.at(ySieveIndexess.at(iFoil).at(iHole)),event.ySieve-ySievePhys.at(ySieveIndexess.at(iFoil).at(iHole)));
+      h2_yTar->Fill(yTarPhy, event.yTar-yTarPhy);
+      h2_zVer->Fill(zFoil,event.zVer - zFoil);
+      h_yTarReal->Fill(yTarPhy);
+      h2_yTarVypTarReal->Fill(yTarPhy,ypTarPhy);
+      h_ypTarReal->Fill(ypTarPhy);
+      h_ypTarMeasured->Fill(event.ypTar);
+      h2_ypTarVzFoil->Fill(event.zVer,event.ypTar);
+      h2_ypTarVzFoilR->Fill(zFoil,ypTarPhy);
+
+      h2_xSieveAng[iFoil]->Fill(xSievePhys.at(xSieveIndexess.at(iFoil).at(iHole)),event.xpTar-xpTarPhy);
+      h2_ySieveAng[iFoil]->Fill(ySievePhys.at(ySieveIndexess.at(iFoil).at(iHole)),event.ypTar-ypTarPhy);
 
       // Calculate contributions of xTar dependent terms.
       // Use old reconstruction matrix and xTarPhy.
@@ -737,6 +850,12 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
         ++i;
       }
     }  // SVD filling loop
+    for (uint iFoil=0; iFoil<nFoils; iFoil++){
+      
+      h2_xSieveAng[iFoil]->Write();
+      h2_ySieveAng[iFoil]->Write();
+    }
+
     reportProgressFinish();
   }  // run loop
 
@@ -812,6 +931,40 @@ int shms_optics(const cmdOptions::OptionParser_shmsOptics& cmdOpts) {
   delete c3;
   delete c2;
   delete c1;
+
+  h2_xpTar->Draw();
+  h2_ypTar->Draw();
+  h2_xSieve->Draw();
+  h2_ySieve->Draw();
+  h2_yTar->Draw();
+  h2_zVer->Draw();
+  h2_yTarVypTar->Draw();
+  h_yTarReal->Draw();
+  h2_yTarVypTarReal->Draw();
+  h_ypTarReal->Draw();
+  h_ypTarMeasured->Draw();
+  h2_yTarVdeltaReal->Draw();
+  h2_yTarVdelta->Draw();
+  h2_ypTarVzFoil->Draw();
+  h2_ypTarVzFoilR->Draw();
+  h2_fp->Draw();
+
+  h2_xpTar->Write();
+  h2_ypTar->Write();
+  h2_xSieve->Write();
+  h2_ySieve->Write();
+  h2_yTar->Write();
+  h2_zVer->Write();
+  h2_yTarVypTar->Write();
+  h_yTarReal->Write();
+  h2_yTarVypTarReal->Write();
+  h_ypTarReal->Write();
+  h_ypTarMeasured->Write();
+  h2_yTarVdeltaReal->Write();
+  h2_yTarVdelta->Write();
+  h2_ypTarVzFoil->Write();
+  h2_ypTarVzFoilR->Write();
+  h2_fp->Write();
 
   return 0;
 }

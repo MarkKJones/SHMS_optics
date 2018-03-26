@@ -35,9 +35,11 @@ class Peak {
 
 Peak fitPeak(TH1D* histo, double normInit, double meanInit, double sigmaInit);
 
+std::vector<Peak> findPeaks(TH1D* histo, int nfoil=3);
 std::vector<Peak> fitMultiPeak(TH1D* histo, double sigma=0.5);
 std::vector<Peak> selectMultiPeakY(TH1D* histo, int nfoil=3, double sinTheta=1);
 std::vector<Peak> selectMultiPeakZ(TH1D* histo, int nfoil=3, double sinTheta=1);
+std::vector<Peak> sortByHeight(std::vector<Peak> peaksFound, int nFoil=3);
 
 std::size_t getClosestIndex(double value, std::vector<double>& reference);
 

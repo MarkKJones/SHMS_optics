@@ -19,6 +19,7 @@ config::SHMSconfig::SHMSconfig() :
   thetaCentral(0.0), cosTheta(1.0), sinTheta(0.0),
   thetaOffset(0.0), phiOffset(0.0),
   xMispointing(0.0), yMispointing(0.0)
+  //xMispointing(-0.126), yMispointing(-0.05)
 {}
 
 
@@ -28,7 +29,7 @@ config::SHMSconfig::~SHMSconfig() {}
 
 config::SieveConfig::SieveConfig() :
   nRow(11), nCol(11),
-  xHoleMin(-12.5), yHoleMin(-8.5), xHoleSpace(2.5), yHoleSpace(1.64),
+  xHoleMin(-12.5), yHoleMin(-8.2), xHoleSpace(2.5), yHoleSpace(1.64),
   x0(0.0), y0(0.0), z0(253.0)
 {}
 
@@ -38,7 +39,7 @@ config::SieveConfig::~SieveConfig() {}
 
 config::RunConfig::RunConfig() :
   runNumber(0), fileList(), cuts(""), zFoils(),
-  beam(), SHMS(), sievetype(0), sieve()
+  beam(), SHMS(), sievetype(0), sieve(), use2017Corr(0)
 {}
 
 config::RunConfig::~RunConfig() {}
@@ -49,7 +50,7 @@ std::vector<double> config::RunConfig::getSieveHolesX() const {
   for (size_t i=0; i<sieve.nRow; ++i) {
     xSieveHoles.at(i) =
       sieve.xHoleMin + static_cast<double>(i)*sieve.xHoleSpace +
-      sieve.x0 + SHMS.xMispointing;
+      sieve.x0;
   }
 
   return xSieveHoles;
@@ -62,14 +63,14 @@ std::vector<double> config::RunConfig::getSieveHolesY() const {
     for (size_t i=0; i<sieve.nCol; ++i) {
       ySieveHoles.at(i) =
 	sieve.yHoleMin + static_cast<double>(i)*sieve.yHoleSpace +
-	sieve.y0 + SHMS.yMispointing;
+	sieve.y0;
     }
   }
   else{//shifted
     for (size_t i=0; i<sieve.nCol; ++i) {
       ySieveHoles.at(i) =
 	sieve.yHoleMin + 0.82 + static_cast<double>(i)*sieve.yHoleSpace +
-	sieve.y0 + SHMS.yMispointing;
+	sieve.y0;
     }
   }
 
@@ -155,6 +156,14 @@ config::Config config::loadConfigFile(const std::string& fname) {
     }
     else if (tokens[0] == "cut") {
       conf.runConfigs.back().cuts = tokens[1];
+    }
+    else if (tokens[0] == "mispointing") {
+      conf.runConfigs.back().SHMS.xMispointing = stod(tokens[1]);
+      conf.runConfigs.back().SHMS.yMispointing = stod(tokens[2]);
+    }
+    else if (tokens[0] == "use2017Corr"){
+      //correction applied to 2017 data prior to optimization, corrects yTar ypTar dependence
+      conf.runConfigs.back().use2017Corr = stod(tokens[1]);
     }
   }
 
