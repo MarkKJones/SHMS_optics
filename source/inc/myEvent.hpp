@@ -13,6 +13,9 @@ class Event {
 
     void reset();
 
+  //central angle.
+  double theta; //degrees
+
     // Focal plane variables.
     double xFp;  // cm
     double yFp;  // cm

@@ -18,8 +18,8 @@ config::BeamConfig::~BeamConfig() {}
 config::SHMSconfig::SHMSconfig() :
   thetaCentral(0.0), cosTheta(1.0), sinTheta(0.0),
   thetaOffset(0.0), phiOffset(0.0),
-  xMispointing(0.0), yMispointing(0.0)
-  //xMispointing(-0.126), yMispointing(-0.05)
+  //xMispointing(0.0), yMispointing(0.0)
+  xMispointing(-0.126), yMispointing(-0.05)
 {}
 
 
@@ -39,7 +39,7 @@ config::SieveConfig::~SieveConfig() {}
 
 config::RunConfig::RunConfig() :
   runNumber(0), fileList(), cuts(""), zFoils(),
-  beam(), SHMS(), sievetype(0), sieve(), use2017Corr(0)
+  beam(), SHMS(), sievetype(0), sieve(), use2017Corr(0), Theta()
 {}
 
 config::RunConfig::~RunConfig() {}
@@ -82,7 +82,7 @@ std::vector<double> config::RunConfig::getSieveHolesY() const {
 config::Config::Config() :
   recMatrixFileNameOld(""), recMatrixFileNameNew(""),
   fitOrder(0), maxEventsPerHole(0), zFoilOffset(0.0),
-  xTarCorrIterNum(1), runConfigs()//, sieve()
+  xTarCorrIterNum(0), runConfigs()//, sieve()
 {}
 
 
@@ -130,7 +130,11 @@ config::Config config::loadConfigFile(const std::string& fname) {
       conf.runConfigs.back().runNumber = stoi(tokens[1]);
     }
     else if (tokens[0] == "filelist") {
-      conf.runConfigs.back().fileList = std::vector<std::string> (tokens.begin()+1, tokens.end());
+      //conf.runConfigs.back().fileList = std::vector<std::string> (tokens.begin()+1, tokens.end());
+      //std::cout<<"Number of files found: "<<tokens.size()-1<<std::endl;
+      for (size_t i=1; i<tokens.size(); ++i){
+	conf.runConfigs.back().fileList.push_back(tokens.at(i));
+      }
     }
     else if (tokens[0] == "beampos") {
       conf.runConfigs.back().beam.x0 = stod(tokens[1]);
@@ -146,6 +150,11 @@ config::Config config::loadConfigFile(const std::string& fname) {
     else if (tokens[0] == "zfoil") {
       for (size_t i=1; i<tokens.size(); ++i) {
         conf.runConfigs.back().zFoils.push_back(stod(tokens.at(i)));
+      }
+    }
+    else if (tokens[0] == "Theta") {
+      for (size_t i=1; i<tokens.size(); ++i) {
+        conf.runConfigs.back().Theta.push_back(stod(tokens.at(i)));
       }
     }
     else if (tokens[0] == "sieveslit") {

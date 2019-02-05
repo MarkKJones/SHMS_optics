@@ -63,6 +63,7 @@ namespace config {
     std::vector<std::string> fileList;
     std::string cuts;
     std::vector<double> zFoils;  // cm, zFoilOffset applied
+    std::vector<double> Theta; //degrees
     
     BeamConfig beam;
     SHMSconfig SHMS;

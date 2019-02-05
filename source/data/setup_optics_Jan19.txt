@@ -1,0 +1,75 @@
+newrun 1813
+filelist shmsoptics/shms_replay_production_all_1813_-1.root shmsoptics/shms_replay_production_all_2234_-1.root
+beampos 0.0 0.0 0.0 0.0
+thetaSHMS 22.05
+nfoil 3
+zfoil -10.0 0.0 10.0
+sieveslit 2
+cut P.cal.etracknorm>0.8&&P.gtr.dp<20&&P.gtr.dp>-12
+use2017Corr 1
+Theta 22.05 22.0
+
+newrun 1814
+filelist shmsoptics/shms_replay_production_all_1814_-1.root shmsoptics/shms_replay_production_all_2233_-1.root
+beampos 0.0 0.0 0.0 0.0
+thetaSHMS 22.05
+nfoil 3
+zfoil -10.0 0.0 10.0
+sieveslit 1
+cut P.cal.etracknorm>0.8&&P.gtr.dp<20&&P.gtr.dp>-12
+use2017Corr 1
+Theta 22.05 22.0
+
+newrun 1815
+filelist shmsoptics/shms_replay_production_all_1815_-1.root shmsoptics/shms_replay_production_all_1816_-1.root shmsoptics/shms_replay_production_all_1819_-1.root shmsoptics/shms_replay_production_all_1820_-1.root shmsoptics/shms_replay_production_all_1821_-1.root shmsoptics/shms_replay_production_all_1822_-1.root
+beampos 0.0 0.0 0.0 0.0
+thetaSHMS 30.065
+nfoil 2
+zfoil -5.0 5.0
+sieveslit 1
+cut P.cal.etracknorm>0.8&&P.gtr.dp<20&&P.gtr.dp>-12
+use2017Corr 0
+Theta 30.065 30.065 30.065 30.065 30.065 30.065
+
+newrun 1817
+filelist shmsoptics/shms_replay_production_all_1817_-1.root shmsoptics/shms_replay_production_all_1818_-1.root shmsoptics/shms_replay_production_all_1823_-1.root shmsoptics/coin_replay_production_1914_-1.root shmsoptics/coin_replay_production_1915_-1.root shmsoptics/coin_replay_production_1916_-1.root shmsoptics/coin_replay_production_1917_-1.root shmsoptics/coin_replay_production_1918_-1.root shmsoptics/shms_replay_production_all_2235_-1.root shmsoptics/shms_replay_production_all_2236_-1.root shmsoptics/shms_replay_production_all_2237_-1.root shmsoptics/shms_replay_production_all_2238_-1.root shmsoptics/shms_replay_production_all_2239_-1.root
+beampos 0.0 0.0 0.0 0.0
+thetaSHMS 30.065
+nfoil 3
+zfoil -10.0 0.0 10.0
+sieveslit 1
+cut P.cal.etracknorm>0.8&&P.gtr.dp<20&&P.gtr.dp>-12
+use2017Corr 0
+Theta 30.065 30.065 30.065 30.075 30.075 30.075 30.075 30.075 30.02 30.02 30.02 30.02 30.02
+
+newrun 1919
+filelist shmsoptics/coin_replay_production_1919_-1.root
+beampos 0.0 0.0 0.0 0.0
+thetaSHMS 22.0
+nfoil 2
+zfoil -5.0 5.0
+sieveslit 1
+cut P.cal.etracknorm>0.8&&P.gtr.dp<20&&P.gtr.dp>-12
+use2017Corr 0
+Theta 22.0
+
+newrun 6620
+filelist shmsoptics/coin_replay_production_6620_1000000.root
+beampos 0.0 0.0 0.0 0.0
+thetaSHMS 9.495
+nfoil 1
+zfoil 0.0
+sieveslit 1
+cut P.cal.etracknorm>0.8&&P.gtr.dp<20&&P.gtr.dp>-12
+use2017Corr 0
+Theta 9.495
+
+endlist
+shms-2019-newfit3.dat
+shms-2019-opt.dat
+0.0 0.0
+6
+200 20000
+0.0
+0
+#4.8280702357E-05
