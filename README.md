@@ -50,9 +50,9 @@ In the case of keywords beampos, thetaSHMS, nfoil, zfoil and sieveslit, if the k
 
 After the "endlist" keyword is encountered, there are a few subsequent arguments expected. 
 
-`oldcoeff.dat`: name of file containing "old" (starting) reconstruction matrix elements
+`oldcoeff.dat`: name of file containing "old" (starting) reconstruction matrix elements. This will search for two files of the pattern `oldcoeff__dep.dat` and `oldcoeff__indep.dat`. These are separated since we optimize over the indep variables, but we include the dep variable for reconstructing the events.
 
-`newcoeff.dat`: name of file containing "new" reconstruction matrix elements (file to which fit results will be written). 
+`newcoeff.dat`: name of file containing "new" reconstruction matrix elements (file to which fit results will be written). This will produce two output files with the dep and indep matrix elements separately in the pattern of `newcoeff__dep.dat` and `newcoeff__indep.dat`. 
 
 `htheta_offset_old`: offset applied to yptar (in-plane) angle. If using newly optimized matrix elements, this comes from the 0000 elements. 
 

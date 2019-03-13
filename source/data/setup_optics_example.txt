@@ -6,6 +6,7 @@ nfoil 3
 zfoil -10.0 0.0 10.0
 sieveslit 1
 cut P.gtr.dp>0&&P.ngcer.npeSum>10
+Theta 15.0
 
 endlist
 shms-2011-26cm-monte_ideal_6ord.dat

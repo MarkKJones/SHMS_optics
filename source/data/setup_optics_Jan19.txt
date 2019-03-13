@@ -65,7 +65,7 @@ use2017Corr 0
 Theta 9.495
 
 endlist
-shms-2019-newfit3.dat
+shms-2017-newfit3.dat
 shms-2019-opt.dat
 0.0 0.0
 6
